@@ -1,0 +1,25 @@
+# Dependencias de Node (¡Nunca las subas!)
+node_modules/
+npm-debug.log*
+yarn-error.log*
+
+# Variables de entorno (Contienen claves secretas)
+.env
+.env.local
+
+# Base de datos SQLite (Si la usas local)
+*.sqlite
+*.sqlite3
+*.db
+*.db-journal
+
+# Archivos de sistema y logs
+.DS_Store
+dist/
+build/
+logs
+*.log
+
+# Carpetas de editores
+.vscode/
+.idea/
