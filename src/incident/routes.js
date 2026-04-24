@@ -8,6 +8,7 @@ const { verifyToken } = require('../middleware/auth');
 
 router.post('/crear/', incidentController.createIncident);
 router.get('/listar/', incidentController.getIncidents);
+router.get('/listar/cliente/:clienteId', incidentController.getIncidentsByCliente);
 router.get('/listar/:id', incidentController.getIncidentById);
 router.put('/actualizar/:id', incidentController.updateIncident);
 router.delete('/eliminar/:id', incidentController.deleteIncident);

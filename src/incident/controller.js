@@ -2,13 +2,13 @@ const incidentService = require('./service');
 
 async function createIncident(req, res) {
     try {
-        const { cliente, tipo } = req.body;
+        const { cliente, tipo, workstationData } = req.body;
         
         if (!cliente || !tipo) {
             return res.status(400).json({ error: 'El cliente y el tipo de incidente son obligatorios' });
         }
         
-        const newIncident = await incidentService.createIncident(cliente, tipo);
+        const newIncident = await incidentService.createIncident(cliente, tipo, workstationData);
         res.status(201).json({ message: 'Incidente creado exitosamente', incident: newIncident });
     } catch (error) {
         console.error('Error al crear incidente:', error);
@@ -22,6 +22,17 @@ async function getIncidents(req, res) {
         res.status(200).json(incidents);
     } catch (error) {
         console.error('Error al obtener incidentes:', error);
+        res.status(500).json({ error: 'Error interno del servidor' });
+    }
+}
+
+async function getIncidentsByCliente(req, res) {
+    try {
+        const { clienteId } = req.params;
+        const incidents = await incidentService.getIncidentsByCliente(clienteId);
+        res.status(200).json(incidents);
+    } catch (error) {
+        console.error('Error al obtener incidentes por cliente:', error);
         res.status(500).json({ error: 'Error interno del servidor' });
     }
 }
@@ -84,6 +95,7 @@ async function deleteIncident(req, res) {
 module.exports = {
     createIncident,
     getIncidents,
+    getIncidentsByCliente,
     getIncidentById,
     updateIncident,
     deleteIncident
