@@ -7,7 +7,7 @@ const { verifyToken } = require('../middleware/auth');
 router.get('/listar/', areaController.getAreas);
 
 // Proteger el resto de las rutas de áreas usando el middleware verifyToken
-router.use(verifyToken);
+// router.use(verifyToken); // Comentado temporalmente
 
 router.post('/crear/', areaController.createArea);
 router.get('/listar/:id', areaController.getAreaById);
