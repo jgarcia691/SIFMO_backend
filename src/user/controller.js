@@ -64,7 +64,18 @@ async function login(req, res) {
     }
 }
 
+async function getUsers(req, res) {
+    try {
+        const users = await userService.getUsers();
+        res.status(200).json(users);
+    } catch (error) {
+        console.error('Error al obtener usuarios:', error);
+        res.status(500).json({ error: 'Error interno del servidor' });
+    }
+}
+
 module.exports = {
     createUser,
-    login
+    login,
+    getUsers
 };

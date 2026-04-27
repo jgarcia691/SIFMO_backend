@@ -25,7 +25,16 @@ async function getUserByFicha(ficha) {
     return user;
 }
 
+async function getUsers() {
+    const db = await connectDB();
+    // Return users, possibly join with Area to give more context if needed
+    // But for now just get them all to populate a dropdown
+    const users = await db.all('SELECT ficha, nombre, rol, id_area FROM Usuario');
+    return users;
+}
+
 module.exports = {
     createUser,
-    getUserByFicha
+    getUserByFicha,
+    getUsers
 };
