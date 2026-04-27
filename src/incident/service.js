@@ -36,8 +36,8 @@ const incidentQuery = `
         s.tipo_solicitud AS solicitud_tipo,
         s.descripcion AS solicitud_descripcion
     FROM Incidente i
-    LEFT JOIN Usuario u ON CAST(i.cliente AS TEXT) = CAST(u.ficha AS TEXT)
-    LEFT JOIN Usuario e ON CAST(i.encargado AS TEXT) = CAST(e.ficha AS TEXT)
+    LEFT JOIN Usuario u ON i.cliente = u.ficha
+    LEFT JOIN Usuario e ON i.encargado = e.ficha
     LEFT JOIN Area_Departamento a ON u.id_area = a.id
     LEFT JOIN R_workstation rw ON i.id = rw.id
     LEFT JOIN R_periferico rp ON i.id = rp.id
