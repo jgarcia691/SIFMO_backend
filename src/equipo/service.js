@@ -49,10 +49,25 @@ async function deleteEquipo(fmo) {
     return result.changes;
 }
 
+async function getHistorialByFmo(fmo) {
+    const db = await connectDB();
+    const query = `
+        SELECT i.*, rw.*, u.nombre as solicitante
+        FROM Incidente i
+        JOIN R_workstation rw ON i.id = rw.id
+        LEFT JOIN Usuario u ON i.cliente = u.ficha
+        WHERE rw.cpu_fmo = ?
+        ORDER BY i.fecha DESC
+    `;
+    const historial = await db.all(query, [fmo]);
+    return historial;
+}
+
 module.exports = {
     createEquipo,
     getEquipos,
     getEquipoByFmo,
     updateEquipo,
-    deleteEquipo
+    deleteEquipo,
+    getHistorialByFmo
 };

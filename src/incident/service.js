@@ -10,6 +10,10 @@ const incidentQuery = `
         i.fecha,
         i.status,
         u.nombre AS solicitante,
+        u.correo AS solicitante_correo,
+        e.nombre AS encargado_nombre,
+        e.correo AS encargado_correo,
+        e.numero AS encargado_numero,
         a.nombre AS area,
         rw.cpu_fmo,
         rw.tipo_falla AS workstation_tipo_falla,
@@ -32,14 +36,15 @@ const incidentQuery = `
         s.tipo_solicitud AS solicitud_tipo,
         s.descripcion AS solicitud_descripcion
     FROM Incidente i
-    LEFT JOIN Usuario u ON i.cliente = u.ficha
+    LEFT JOIN Usuario u ON CAST(i.cliente AS TEXT) = CAST(u.ficha AS TEXT)
+    LEFT JOIN Usuario e ON CAST(i.encargado AS TEXT) = CAST(e.ficha AS TEXT)
     LEFT JOIN Area_Departamento a ON u.id_area = a.id
     LEFT JOIN R_workstation rw ON i.id = rw.id
     LEFT JOIN R_periferico rp ON i.id = rp.id
     LEFT JOIN Solicitud s ON i.id = s.id
 `;
 
-async function createIncident(cliente, tipo, workstationData = null) {
+async function createIncident(cliente, tipo, workstationData = null, peripheralData = null, solicitudData = null) {
     const db = await connectDB();
     
     const result = await db.run(
@@ -52,6 +57,33 @@ async function createIncident(cliente, tipo, workstationData = null) {
     // Si el tipo es reparación de estación de trabajo, creamos el registro técnico
     if (tipo === 'reparacion de estacion de trabajo' && workstationData) {
         await workstationService.createWorkstationRecord(db, incidentId, workstationData);
+    }
+
+    // Si el tipo es reparación de periférico, insertamos en R_periferico
+    // Asumimos tabla (id, falla, tipo_solicitud)
+    if (tipo === 'reparacion de periferico' && peripheralData) {
+        // Aseguramos que la tabla exista temporalmente por si acaso
+        await db.exec(`CREATE TABLE IF NOT EXISTS R_periferico (
+            id INTEGER PRIMARY KEY,
+            falla TEXT,
+            tipo_solicitud TEXT,
+            FOREIGN KEY(id) REFERENCES Incidente(id) ON DELETE CASCADE
+        )`);
+        await db.run('INSERT INTO R_periferico (id, falla, tipo_solicitud) VALUES (?, ?, ?)', 
+            [incidentId, peripheralData.falla, peripheralData.tipo_solicitud]);
+    }
+
+    // Si el tipo es solicitud, insertamos en Solicitud
+    // Asumimos tabla (id, tipo_solicitud, descripcion)
+    if (tipo === 'solicitud' && solicitudData) {
+        await db.exec(`CREATE TABLE IF NOT EXISTS Solicitud (
+            id INTEGER PRIMARY KEY,
+            tipo_solicitud TEXT,
+            descripcion TEXT,
+            FOREIGN KEY(id) REFERENCES Incidente(id) ON DELETE CASCADE
+        )`);
+        await db.run('INSERT INTO Solicitud (id, tipo_solicitud, descripcion) VALUES (?, ?, ?)', 
+            [incidentId, solicitudData.tipo_solicitud, solicitudData.descripcion]);
     }
 
     // Recuperar el incidente creado con todos sus detalles
@@ -81,9 +113,9 @@ async function updateIncident(id, encargado, status, fecha) {
     const db = await connectDB();
     // Permitir actualizar encargado, status y fecha
     const result = await db.run(
-        'UPDATE Incidente SET encargado = COALESCE(?, encargado), status = COALESCE(?, status), fecha = COALESCE(?, fecha) WHERE id = ?',
+        'UPDATE Incidente SET encargado = ?, status = COALESCE(?, status), fecha = COALESCE(?, fecha) WHERE id = ?',
         [
-            encargado !== undefined ? encargado : null, 
+            encargado !== undefined ? (encargado === "" ? null : encargado) : undefined, 
             status !== undefined ? status : null, 
             fecha !== undefined ? fecha : null, 
             id

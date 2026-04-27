@@ -56,12 +56,26 @@ async function deleteEquipo(req, res) {
     try {
         const { fmo } = req.params;
         const changes = await equipoService.deleteEquipo(fmo);
+        
         if (changes === 0) {
             return res.status(404).json({ error: 'Equipo no encontrado' });
         }
-        res.json({ message: 'Equipo eliminado correctamente' });
+        
+        res.status(200).json({ message: 'Equipo eliminado exitosamente' });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        console.error('Error al eliminar equipo:', error);
+        res.status(500).json({ error: 'Error interno del servidor' });
+    }
+}
+
+async function getHistorial(req, res) {
+    try {
+        const { fmo } = req.params;
+        const historial = await equipoService.getHistorialByFmo(fmo);
+        res.status(200).json(historial);
+    } catch (error) {
+        console.error('Error al obtener historial de equipo:', error);
+        res.status(500).json({ error: 'Error interno del servidor' });
     }
 }
 
@@ -70,5 +84,6 @@ module.exports = {
     getEquipos,
     getEquipoByFmo,
     updateEquipo,
-    deleteEquipo
+    deleteEquipo,
+    getHistorial
 };
