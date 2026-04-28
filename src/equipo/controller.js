@@ -2,11 +2,11 @@ const equipoService = require('./service');
 
 async function createEquipo(req, res) {
     try {
-        const { fmo, area_fk, nombre, serial, marca_fk } = req.body;
+        const { fmo, area_fk, tipo, nombre, serial, marca_fk, propietario_ficha } = req.body;
         if (!fmo || !nombre) {
             return res.status(400).json({ error: 'FMO y nombre son obligatorios' });
         }
-        const newEquipo = await equipoService.createEquipo(fmo, area_fk, nombre, serial, marca_fk);
+        const newEquipo = await equipoService.createEquipo(fmo, area_fk, tipo, nombre, serial, marca_fk, propietario_ficha);
         res.status(201).json(newEquipo);
     } catch (error) {
         if (error.message.includes('UNIQUE constraint failed')) {
@@ -18,7 +18,10 @@ async function createEquipo(req, res) {
 
 async function getEquipos(req, res) {
     try {
-        const equipos = await equipoService.getEquipos();
+        // En un sistema real esto vendría de un token JWT
+        const { ficha, rol } = req.query;
+        const isAdmin = rol?.toLowerCase() === 'administrador';
+        const equipos = await equipoService.getEquipos(ficha, isAdmin);
         res.json(equipos);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -41,8 +44,8 @@ async function getEquipoByFmo(req, res) {
 async function updateEquipo(req, res) {
     try {
         const { fmo } = req.params;
-        const { area_fk, nombre, serial, marca_fk } = req.body;
-        const changes = await equipoService.updateEquipo(fmo, area_fk, nombre, serial, marca_fk);
+        const { area_fk, tipo, nombre, serial, marca_fk, propietario_ficha } = req.body;
+        const changes = await equipoService.updateEquipo(fmo, area_fk, tipo, nombre, serial, marca_fk, propietario_ficha);
         if (changes === 0) {
             return res.status(404).json({ error: 'Equipo no encontrado o sin cambios' });
         }
@@ -56,15 +59,12 @@ async function deleteEquipo(req, res) {
     try {
         const { fmo } = req.params;
         const changes = await equipoService.deleteEquipo(fmo);
-        
         if (changes === 0) {
             return res.status(404).json({ error: 'Equipo no encontrado' });
         }
-        
-        res.status(200).json({ message: 'Equipo eliminado exitosamente' });
+        res.json({ message: 'Equipo eliminado correctamente' });
     } catch (error) {
-        console.error('Error al eliminar equipo:', error);
-        res.status(500).json({ error: 'Error interno del servidor' });
+        res.status(500).json({ error: error.message });
     }
 }
 

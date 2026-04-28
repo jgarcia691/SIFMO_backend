@@ -13,7 +13,7 @@ async function createIncident(req, res) {
         res.status(201).json({ message: 'Incidente creado exitosamente', incident: newIncident });
     } catch (error) {
         console.error('Error al crear incidente:', error);
-        res.status(500).json({ error: 'Error interno del servidor' });
+        res.status(500).json({ error: error.message || 'Error interno del servidor' });
     }
 }
 
@@ -23,7 +23,7 @@ async function getIncidents(req, res) {
         res.status(200).json(incidents);
     } catch (error) {
         console.error('Error al obtener incidentes:', error);
-        res.status(500).json({ error: 'Error interno del servidor' });
+        res.status(500).json({ error: error.message || 'Error interno del servidor' });
     }
 }
 
@@ -34,7 +34,18 @@ async function getIncidentsByCliente(req, res) {
         res.status(200).json(incidents);
     } catch (error) {
         console.error('Error al obtener incidentes por cliente:', error);
-        res.status(500).json({ error: 'Error interno del servidor' });
+        res.status(500).json({ error: error.message || 'Error interno del servidor' });
+    }
+}
+
+async function getIncidentsByAnalista(req, res) {
+    try {
+        const { ficha } = req.params;
+        const incidents = await incidentService.getIncidentsByAnalista(ficha);
+        res.status(200).json(incidents);
+    } catch (error) {
+        console.error('Error al obtener incidentes por analista:', error);
+        res.status(500).json({ error: error.message || 'Error interno del servidor' });
     }
 }
 
@@ -50,18 +61,18 @@ async function getIncidentById(req, res) {
         res.status(200).json(incident);
     } catch (error) {
         console.error('Error al obtener incidente:', error);
-        res.status(500).json({ error: 'Error interno del servidor' });
+        res.status(500).json({ error: error.message || 'Error interno del servidor' });
     }
 }
 
 async function updateIncident(req, res) {
     try {
         const { id } = req.params;
-        const { encargado, status, fecha } = req.body;
+        const { encargado, status, fecha, observacion } = req.body;
         
-        // Si no se envían encargado, status ni fecha, no hay nada que actualizar
-        if (encargado === undefined && status === undefined && fecha === undefined) {
-             return res.status(400).json({ error: 'Debe proporcionar un encargado, status o fecha para actualizar' });
+        // Si no se envían encargado, status, fecha ni observacion, no hay nada que actualizar
+        if (encargado === undefined && status === undefined && fecha === undefined && observacion === undefined) {
+             return res.status(400).json({ error: 'Debe proporcionar un encargado, status, fecha u observacion para actualizar' });
         }
         
         // Obtener el incidente original para verificar si el estado cambia
@@ -70,7 +81,7 @@ async function updateIncident(req, res) {
             return res.status(404).json({ error: 'Incidente no encontrado' });
         }
         
-        const changes = await incidentService.updateIncident(id, encargado, status, fecha);
+        const changes = await incidentService.updateIncident(id, encargado, status, fecha, observacion);
         
         if (changes === 0) {
             return res.status(404).json({ error: 'Incidente no encontrado' });
@@ -133,6 +144,7 @@ module.exports = {
     createIncident,
     getIncidents,
     getIncidentsByCliente,
+    getIncidentsByAnalista,
     getIncidentById,
     updateIncident,
     deleteIncident

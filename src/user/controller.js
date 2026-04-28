@@ -74,8 +74,28 @@ async function getUsers(req, res) {
     }
 }
 
+async function updateUser(req, res) {
+    try {
+        const { ficha } = req.params;
+        const { id_area, nombre, numero, correo } = req.body;
+        
+        const changes = await userService.updateUser(ficha, { id_area, nombre, numero, correo });
+        if (changes === 0) {
+            return res.status(404).json({ error: 'Usuario no encontrado' });
+        }
+        
+        // Obtener el usuario actualizado para devolverlo
+        const updatedUser = await userService.getUserByFicha(ficha);
+        res.status(200).json({ message: 'Perfil actualizado exitosamente', user: updatedUser });
+    } catch (error) {
+        console.error('Error al actualizar usuario:', error);
+        res.status(500).json({ error: 'Error interno del servidor' });
+    }
+}
+
 module.exports = {
     createUser,
     login,
-    getUsers
+    getUsers,
+    updateUser
 };

@@ -21,7 +21,12 @@ async function createUser(userData) {
 
 async function getUserByFicha(ficha) {
     const db = await connectDB();
-    const user = await db.get('SELECT * FROM Usuario WHERE ficha = ?', [ficha]);
+    const user = await db.get(`
+        SELECT u.*, a.nombre AS area 
+        FROM Usuario u
+        LEFT JOIN Area_Departamento a ON u.id_area = a.id
+        WHERE u.ficha = ?
+    `, [ficha]);
     return user;
 }
 
@@ -37,8 +42,24 @@ async function getUsers() {
     return users;
 }
 
+async function updateUser(ficha, userData) {
+    const { id_area, nombre, numero, correo } = userData;
+    const db = await connectDB();
+    const result = await db.run(
+        `UPDATE Usuario SET 
+            id_area = COALESCE(?, id_area), 
+            nombre = COALESCE(?, nombre), 
+            numero = COALESCE(?, numero), 
+            correo = COALESCE(?, correo)
+         WHERE ficha = ?`,
+        [id_area, nombre, numero, correo, ficha]
+    );
+    return result.changes;
+}
+
 module.exports = {
     createUser,
     getUserByFicha,
-    getUsers
+    getUsers,
+    updateUser
 };
