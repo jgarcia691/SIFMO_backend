@@ -43,6 +43,8 @@ const runMigrations = async () => {
         if (!equipoInfo.some(c => c.name === 'tipo')) {
             console.log('Agregando "tipo" a Equipo...');
             await db.run('ALTER TABLE Equipo ADD COLUMN tipo TEXT');
+        } else {
+            console.log('Columna "tipo" ya existe en Equipo.');
         }
         if (!equipoInfo.some(c => c.name === 'propietario_ficha')) {
             console.log('Agregando "propietario_ficha" a Equipo...');
