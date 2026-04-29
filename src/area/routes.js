@@ -3,7 +3,8 @@ const router = express.Router();
 const areaController = require('./controller');
 const { verifyToken } = require('../middleware/auth');
 
-// Ruta pública para obtener las áreas (necesaria para el registro)
+// Rutas públicas para obtener las áreas (necesarias para el registro)
+router.get('/', areaController.getAreas);
 router.get('/listar/', areaController.getAreas);
 
 // Proteger el resto de las rutas de áreas usando el middleware verifyToken
