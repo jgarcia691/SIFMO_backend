@@ -109,7 +109,7 @@ const initDatabase = async () => {
         const adminUser = await db.get("SELECT * FROM Usuario WHERE rol = 'Administrador' LIMIT 1");
         if (!adminUser) {
             console.log('No se detectó Administrador. Creando usuario inicial...');
-            await db.run("INSERT OR IGNORE INTO Area_Departamento (id, nombre) VALUES (1, 'TELEMÁTICA')");
+            await db.run("INSERT OR IGNORE INTO Area_Departamento (id, nombre) VALUES (1, 'Soporte Técnico')");
             await db.run("INSERT INTO Usuario (ficha, id_area, nombre, rol, correo) VALUES (1, 1, 'ADMINISTRADOR SISTEMA', 'Administrador', 'admin@ferrominera.com')");
             console.log('Usuario Administrador inicial creado (Ficha: 1)');
         }
