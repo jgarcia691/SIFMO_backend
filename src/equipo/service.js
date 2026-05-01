@@ -60,11 +60,13 @@ async function deleteEquipo(fmo) {
 async function getHistorialByFmo(fmo) {
     const db = await connectDB();
     const query = `
-        SELECT i.*, rw.tipo_falla as workstation_falla, rp.falla as periferico_falla, u.nombre as solicitante
+        SELECT i.*, rw.tipo_falla as workstation_falla, rp.falla as periferico_falla, 
+               u.nombre as solicitante, e.nombre as encargado_nombre
         FROM Incidente i
         LEFT JOIN R_workstation rw ON i.id = rw.id
         LEFT JOIN R_periferico rp ON i.id = rp.id
         LEFT JOIN Usuario u ON i.cliente = u.ficha
+        LEFT JOIN Usuario e ON i.encargado = e.ficha
         WHERE rw.cpu_fmo = ? OR rp.fmo = ?
         ORDER BY i.fecha DESC
     `;
