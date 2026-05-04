@@ -17,6 +17,7 @@ const incidentQuery = `
         e.correo AS encargado_correo,
         e.numero AS encargado_numero,
         a.nombre AS area,
+        u.id_area AS extension,
         rw.cpu_fmo,
         rw.tipo_falla AS workstation_tipo_falla,
         rw.respaldo,
