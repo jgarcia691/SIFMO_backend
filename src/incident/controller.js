@@ -94,17 +94,75 @@ async function updateIncident(req, res) {
             if (correoDestino) {
                 const asunto = `Actualización de Incidente #${id}: Nuevo Estado - ${status}`;
                 const texto = `Hola ${originalIncident.solicitante},\n\nEl estado de su incidente (Tipo: ${originalIncident.tipo}) ha sido actualizado a: ${status}.\n\nSaludos,\nEquipo de Soporte SIFMO.`;
+                const statusMessages = {
+                    'Pendiente': 'Su solicitud ha sido recibida y está a la espera de ser asignada a un técnico.',
+                    'En revisión': 'Un técnico está revisando los detalles de su caso para determinar la mejor solución.',
+                    'En Proceso': 'Nuestro equipo está trabajando activamente en la resolución de su incidencia.',
+                    'Listo': 'Su equipo ha sido reparado y está listo para ser retirado.',
+                    'Entregado': 'El equipo ha sido entregado satisfactoriamente. Gracias por confiar en nosotros.',
+                    'Completado': 'La incidencia ha sido resuelta y el caso ha sido cerrado.'
+                };
+                const statusDetail = statusMessages[status] || 'Nuestro equipo técnico está trabajando para resolver su solicitud lo antes posible.';
+
                 const html = `
-                    <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
-                        <h2 style="color: #0d6efd;">SIFMO - Actualización de Incidente</h2>
-                        <p>Hola <strong>${originalIncident.solicitante}</strong>,</p>
-                        <p>Le informamos que el estado de su incidente reportado (Tipo: <em>${originalIncident.tipo}</em>) ha cambiado.</p>
-                        <p style="font-size: 16px; padding: 10px; background-color: #f8f9fa; border-left: 4px solid #0d6efd;">
-                            <strong>Nuevo Estado:</strong> ${status}
-                        </p>
-                        <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
-                        <p style="font-size: 12px; color: #6c757d;"><small>Este es un mensaje automático del Sistema de Incidencias SIFMO. Por favor, no responda a este correo.</small></p>
-                    </div>
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                        <style>
+                            @media screen and (max-width: 600px) {
+                                .container { width: 100% !important; margin: 0 !important; border-radius: 0 !important; }
+                                .content { padding: 20px !important; }
+                            }
+                        </style>
+                    </head>
+                    <body style="margin: 0; padding: 0; background-color: #f4f4f4;">
+                        <div class="container" style="font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid #e0e0e0;">
+                            <div style="background-color: #6f0001; padding: 35px 20px; text-align: center;">
+                                <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 800; letter-spacing: 3px; text-transform: uppercase;">SGI-FMO</h1>
+                                <p style="color: #ffffff; margin: 5px 0 0; font-size: 11px; opacity: 0.7; font-weight: 400; text-transform: uppercase; letter-spacing: 1px;">Gestión de Incidencias Ferroviarias</p>
+                            </div>
+                            <div class="content" style="padding: 40px 35px;">
+                                <h2 style="color: #1a1c1c; margin-top: 0; font-size: 22px; font-weight: 700;">Hola, ${originalIncident.solicitante}</h2>
+                                <p style="color: #444748; line-height: 1.7; font-size: 16px; margin-bottom: 30px;">
+                                    Le notificamos que el estado de su reporte ha sido actualizado en nuestra plataforma.
+                                </p>
+                                <div style="margin: 30px 0; padding: 25px; background-color: #ffffff; border-radius: 10px; border: 1px solid #f0f0f0; border-left: 6px solid #6f0001;">
+                                    <table style="width: 100%; border-collapse: collapse;">
+                                        <tr>
+                                            <td style="padding: 8px 0; color: #747878; font-size: 11px; text-transform: uppercase; font-weight: 800; letter-spacing: 1px;">ID Incidente</td>
+                                            <td style="padding: 8px 0; color: #1a1c1c; font-weight: 700; font-size: 15px;">#${id}</td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding: 8px 0; color: #747878; font-size: 11px; text-transform: uppercase; font-weight: 800; letter-spacing: 1px;">Categoría</td>
+                                            <td style="padding: 8px 0; color: #1a1c1c; font-weight: 700; font-size: 15px; text-transform: uppercase;">${originalIncident.tipo}</td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding: 15px 0 8px; color: #747878; font-size: 11px; text-transform: uppercase; font-weight: 800; letter-spacing: 1px;">Estado Actual</td>
+                                            <td style="padding: 15px 0 8px;">
+                                                <span style="background-color: #6f0001; color: #ffffff; padding: 6px 16px; border-radius: 6px; font-size: 12px; font-weight: 800; text-transform: uppercase; display: inline-block;">
+                                                    ${status}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </div>
+                                <div style="background-color: #fff8f8; padding: 20px; border-radius: 8px; border: 1px dashed #ffdad5;">
+                                    <p style="color: #6f0001; line-height: 1.6; font-size: 15px; margin: 0; font-weight: 500;">
+                                        <strong>Detalle:</strong> ${statusDetail}
+                                    </p>
+                                </div>
+                            </div>
+                            <div style="background-color: #f9f9f9; padding: 25px; text-align: center; border-top: 1px solid #f0f0f0;">
+                                <p style="margin: 0; font-size: 11px; color: #747878; line-height: 1.5; font-weight: 400;">
+                                    Este es un mensaje automático de <strong>SGI-FMO</strong>.<br>
+                                    CVG FERROMINERA ORINOCO &copy; 2026<br>
+                                    <span style="opacity: 0.6;">Puerto Ordaz, Venezuela</span>
+                                </p>
+                            </div>
+                        </div>
+                    </body>
+                    </html>
                 `;
                 
                 try {

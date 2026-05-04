@@ -57,9 +57,16 @@ async function updateUser(ficha, userData) {
     return result.changes;
 }
 
+async function deleteUser(ficha) {
+    const db = await connectDB();
+    const result = await db.run('DELETE FROM Usuario WHERE ficha = ?', [ficha]);
+    return result.changes;
+}
+
 module.exports = {
     createUser,
     getUserByFicha,
     getUsers,
-    updateUser
+    updateUser,
+    deleteUser
 };

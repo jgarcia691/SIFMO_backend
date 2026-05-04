@@ -93,9 +93,24 @@ async function updateUser(req, res) {
     }
 }
 
+async function deleteUser(req, res) {
+    try {
+        const { ficha } = req.params;
+        const changes = await userService.deleteUser(ficha);
+        if (changes === 0) {
+            return res.status(404).json({ error: 'Usuario no encontrado' });
+        }
+        res.status(200).json({ message: 'Usuario eliminado exitosamente' });
+    } catch (error) {
+        console.error('Error al eliminar usuario:', error);
+        res.status(500).json({ error: 'Error interno del servidor' });
+    }
+}
+
 module.exports = {
     createUser,
     login,
     getUsers,
-    updateUser
+    updateUser,
+    deleteUser
 };
