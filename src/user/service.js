@@ -1,7 +1,8 @@
 const { connectDB } = require('../../config/database');
+const bcrypt = require('bcrypt');
 
 async function createUser(userData) {
-    const { ficha, id_area, nombre, rol, numero, correo } = userData;
+    const { ficha, id_area, nombre, rol, numero, correo, password } = userData;
     const db = await connectDB();
 
     // Verificar si el usuario ya existe
@@ -10,10 +11,12 @@ async function createUser(userData) {
         throw new Error('El usuario con esta ficha ya existe');
     }
 
+    const hashedPassword = await bcrypt.hash(password, 10);
+
     const result = await db.run(
-        `INSERT INTO Usuario (ficha, id_area, nombre, rol, numero, correo)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [ficha, id_area, nombre, rol, numero, correo]
+        `INSERT INTO Usuario (ficha, id_area, nombre, rol, numero, correo, password)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [ficha, id_area, nombre, rol, numero, correo, hashedPassword]
     );
 
     return result;

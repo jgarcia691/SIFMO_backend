@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
 const userService = require('./service');
 
 async function createUser(req, res) {
@@ -7,12 +8,12 @@ async function createUser(req, res) {
             return res.status(400).json({ error: 'Faltan datos en la petición. Asegúrate de enviar Content-Type: application/json' });
         }
 
-        const { ficha, id_area, nombre, rol, numero, correo } = req.body;
-        if (!ficha || !nombre) {
-            return res.status(400).json({ error: 'Ficha y nombre son obligatorios' });
+        const { ficha, id_area, nombre, rol, numero, correo, password } = req.body;
+        if (!ficha || !nombre || !password) {
+            return res.status(400).json({ error: 'Ficha, nombre y contraseña son obligatorios' });
         }
 
-        await userService.createUser({ ficha, id_area, nombre, rol, numero, correo });
+        await userService.createUser({ ficha, id_area, nombre, rol, numero, correo, password });
         
         console.log('Usuario creado exitosamente:', { ficha, id_area, nombre, rol, numero, correo });
 
@@ -35,15 +36,22 @@ async function login(req, res) {
             return res.status(400).json({ error: 'Faltan datos en la petición. Asegúrate de enviar Content-Type: application/json' });
         }
 
-        const { ficha } = req.body;
-        if (!ficha) {
-            return res.status(400).json({ error: 'La ficha es obligatoria para iniciar sesión' });
+        const { ficha, password } = req.body;
+        if (!ficha || !password) {
+            return res.status(400).json({ error: 'Ficha y contraseña son obligatorias para iniciar sesión' });
         }
 
         const user = await userService.getUserByFicha(ficha);
         if (!user) {
             return res.status(404).json({ error: 'Usuario no registrado' });
         }
+
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+            return res.status(401).json({ error: 'Contraseña incorrecta' });
+        }
+
+        delete user.password;
 
         // Generar JWT
         const token = jwt.sign(
