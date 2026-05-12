@@ -46,6 +46,10 @@ async function login(req, res) {
             return res.status(404).json({ error: 'Usuario no registrado' });
         }
 
+        if (!user.password) {
+            return res.status(401).json({ error: 'Usuario sin contraseña asignada. Póngase en contacto con un administrador.' });
+        }
+
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
             return res.status(401).json({ error: 'Contraseña incorrecta' });
@@ -85,9 +89,10 @@ async function getUsers(req, res) {
 async function updateUser(req, res) {
     try {
         const { ficha } = req.params;
-        const { id_area, nombre, numero, correo } = req.body;
+        const { id_area, nombre, numero, correo, password } = req.body;
+        console.log(`[updateUser] ficha: ${ficha}, password provided:`, !!password);
         
-        const changes = await userService.updateUser(ficha, { id_area, nombre, numero, correo });
+        const changes = await userService.updateUser(ficha, { id_area, nombre, numero, correo, password });
         if (changes === 0) {
             return res.status(404).json({ error: 'Usuario no encontrado' });
         }

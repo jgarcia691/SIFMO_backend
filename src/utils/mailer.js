@@ -20,6 +20,11 @@ const transporter = nodemailer.createTransport({
  */
 async function sendMail(to, subject, text, html = '') {
     try {
+        if (!to || typeof to !== 'string' || to.trim() === '') {
+            console.warn('Advertencia: No se puede enviar correo. Destinatario inválido o vacío.');
+            return false;
+        }
+
         if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
             console.warn('Advertencia: Variables de entorno SMTP no configuradas. Simulando envío de correo a:', to);
             return false;

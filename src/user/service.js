@@ -46,17 +46,27 @@ async function getUsers() {
 }
 
 async function updateUser(ficha, userData) {
-    const { id_area, nombre, numero, correo } = userData;
+    const { id_area, nombre, numero, correo, password } = userData;
     const db = await connectDB();
-    const result = await db.run(
-        `UPDATE Usuario SET 
+    
+    let query = `UPDATE Usuario SET 
             id_area = COALESCE(?, id_area), 
             nombre = COALESCE(?, nombre), 
             numero = COALESCE(?, numero), 
-            correo = COALESCE(?, correo)
-         WHERE ficha = ?`,
-        [id_area, nombre, numero, correo, ficha]
-    );
+            correo = COALESCE(?, correo)`;
+    
+    let params = [id_area, nombre, numero, correo];
+
+    if (password) {
+        const hashedPassword = await bcrypt.hash(password, 10);
+        query += `, password = ?`;
+        params.push(hashedPassword);
+    }
+
+    query += ` WHERE ficha = ?`;
+    params.push(ficha);
+
+    const result = await db.run(query, params);
     return result.changes;
 }
 

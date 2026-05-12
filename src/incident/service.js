@@ -102,7 +102,7 @@ async function getIncidentsByCliente(clienteId) {
 
 async function getIncidentsByAnalista(analistaFicha) {
     const db = await connectDB();
-    const incidents = await db.all(`${incidentQuery} WHERE i.encargado = ?`, [analistaFicha]);
+    const incidents = await db.all(`${incidentQuery} WHERE i.encargado = ? OR i.cliente = ?`, [analistaFicha, analistaFicha]);
     return incidents;
 }
 

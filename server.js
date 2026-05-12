@@ -17,6 +17,39 @@ const equipoRoutes = require('./src/equipo/routes');
 app.use(cors());
 app.use(express.json());
 
+// Middleware para registrar todas las solicitudes importantes en consola
+app.use((req, res, next) => {
+  const methodColors = {
+    GET: '\x1b[32m',    // Verde
+    POST: '\x1b[34m',   // Azul
+    PUT: '\x1b[33m',    // Amarillo
+    DELETE: '\x1b[31m', // Rojo
+    PATCH: '\x1b[35m'   // Magenta
+  };
+  const resetColor = '\x1b[0m';
+  const color = methodColors[req.method] || resetColor;
+  
+  const hasBody = req.body && Object.keys(req.body).length > 0;
+  const hasQuery = req.query && Object.keys(req.query).length > 0;
+  
+  // Solo imprimir si hay datos en el body o en los query parameters
+  if (hasBody || hasQuery) {
+    console.log(`\n${color}[${new Date().toLocaleString()}] ${req.method} ${req.url}${resetColor}`);
+    
+    if (hasBody) {
+      const safeBody = { ...req.body };
+      if (safeBody.password) safeBody.password = '[OCULTO POR SEGURIDAD]';
+      console.log(`${color}➜ Datos recibidos (Body):${resetColor}`, safeBody);
+    }
+    
+    if (hasQuery) {
+      console.log(`${color}➜ Parámetros (Query):${resetColor}`, req.query);
+    }
+  }
+  
+  next();
+});
+
 // Usar rutas
 app.use('/api/users', userRoutes);
 app.use('/api/areas', areaRoutes);
