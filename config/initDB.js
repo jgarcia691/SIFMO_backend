@@ -1,4 +1,5 @@
 const { connectDB } = require('./database');
+const bcrypt = require('bcrypt');
 
 const initDatabase = async () => {
     try {
@@ -26,6 +27,7 @@ const initDatabase = async () => {
                 rol TEXT,
                 numero TEXT,
                 correo TEXT,
+                password TEXT,
                 FOREIGN KEY (id_area) REFERENCES Area_Departamento(id)
             );
 
@@ -104,14 +106,42 @@ const initDatabase = async () => {
         if (!equipoInfo.some(c => c.name === 'propietario_ficha')) {
             await db.run('ALTER TABLE Equipo ADD COLUMN propietario_ficha INTEGER REFERENCES Usuario(ficha)');
         }
+        
+        const usuarioInfo = await db.all('PRAGMA table_info(Usuario)');
+        if (!usuarioInfo.some(c => c.name === 'password')) {
+            await db.run('ALTER TABLE Usuario ADD COLUMN password TEXT');
+        }
 
         // 3. Verificar si hay al menos un usuario Admin
         const adminUser = await db.get("SELECT * FROM Usuario WHERE rol = 'Administrador' LIMIT 1");
         if (!adminUser) {
             console.log('No se detectó Administrador. Creando usuario inicial...');
-            await db.run("INSERT OR IGNORE INTO Area_Departamento (id, nombre) VALUES (1, 'Soporte Técnico')");
-            await db.run("INSERT INTO Usuario (ficha, id_area, nombre, rol, correo) VALUES (1, 1, 'ADMINISTRADOR SISTEMA', 'Administrador', 'admin@ferrominera.com')");
-            console.log('Usuario Administrador inicial creado (Ficha: 1)');
+            
+            // Crear departamento de Soporte Técnico si no existe
+            await db.run("INSERT OR IGNORE INTO Area_Departamento (id, nombre) VALUES (1, 'Soporte Tecnico')");
+            
+            // Hash de la contraseña inicial
+            const hashedPassword = await bcrypt.hash('admin', 10);
+            
+            await db.run(
+                "INSERT INTO Usuario (ficha, id_area, nombre, rol, correo, password) VALUES (?, ?, ?, ?, ?, ?)",
+                [1, 1, 'ADMINISTRADOR SISTEMA', 'Administrador', 'admin@ferrominera.com', hashedPassword]
+            );
+            console.log('Usuario Administrador inicial creado (Ficha: 1, Pass: admin)');
+        }
+
+        // 4. Poblar Marcas iniciales si la tabla está vacía
+        const countMarcas = await db.get("SELECT COUNT(*) as count FROM Marca");
+        if (countMarcas.count === 0) {
+            console.log('Poblando marcas iniciales...');
+            const marcas = [
+                'Dell', 'Lenovo', 'Samsung', 'Cooler Master', 
+                'HP', 'Toshiba', 'Acer', 'Asus', 'Microsoft'
+            ];
+            for (const marca of marcas) {
+                await db.run("INSERT INTO Marca (nombre) VALUES (?)", [marca]);
+            }
+            console.log(`Se insertaron ${marcas.length} marcas.`);
         }
 
         console.log('--- Base de Datos Lista ---');
