@@ -46,6 +46,25 @@ async function sendMail(to, subject, text, html = '') {
     }
 }
 
+/**
+ * Verifica la conexión con el servidor SMTP
+ */
+async function verifyConnection() {
+    try {
+        if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+            console.warn('\x1b[33m[MAIL] Variables SMTP no configuradas. Saltando verificación.\x1b[0m');
+            return false;
+        }
+        await transporter.verify();
+        console.log('\x1b[32m[MAIL] Conexión SMTP verificada correctamente (%s)\x1b[0m', process.env.SMTP_HOST);
+        return true;
+    } catch (error) {
+        console.error('\x1b[31m[MAIL] Error al verificar conexión SMTP:\x1b[0m', error.message);
+        return false;
+    }
+}
+
 module.exports = {
-    sendMail
+    sendMail,
+    verifyConnection
 };

@@ -2,6 +2,7 @@ require('dotenv').config();
 const cors = require('cors');
 const express = require('express');
 const { initDatabase } = require('./config/initDB');
+const { verifyConnection } = require('./src/utils/mailer');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -66,4 +67,6 @@ app.listen(PORT, '0.0.0.0', async () => {
   console.log(`Servidor escuchando en puerto ${PORT}`);
   // Inicialización automática de la base de datos
   await initDatabase();
+  // Verificar conexión SMTP
+  await verifyConnection();
 });

@@ -2,11 +2,13 @@ const equipoService = require('./service');
 
 async function createEquipo(req, res) {
     try {
-        const { fmo, area_fk, tipo, nombre, serial, marca_fk, propietario_ficha } = req.body;
+        const { fmo, area_fk, tipo, nombre, serial, marca_fk, propietario_ficha, 
+                ram, cant_ram, cpu, so, disco, tarj_video, pila, fuente, motherboard, tarj_red } = req.body;
         if (!fmo || !nombre) {
             return res.status(400).json({ error: 'FMO y nombre son obligatorios' });
         }
-        const newEquipo = await equipoService.createEquipo(fmo, area_fk, tipo, nombre, serial, marca_fk, propietario_ficha);
+        const hardwareData = { ram, cant_ram, cpu, so, disco, tarj_video, pila, fuente, motherboard, tarj_red };
+        const newEquipo = await equipoService.createEquipo(fmo, area_fk, tipo, nombre, serial, marca_fk, propietario_ficha, hardwareData);
         res.status(201).json(newEquipo);
     } catch (error) {
         if (error.message.includes('UNIQUE constraint failed')) {
@@ -44,8 +46,10 @@ async function getEquipoByFmo(req, res) {
 async function updateEquipo(req, res) {
     try {
         const { fmo } = req.params;
-        const { area_fk, tipo, nombre, serial, marca_fk, propietario_ficha } = req.body;
-        const changes = await equipoService.updateEquipo(fmo, area_fk, tipo, nombre, serial, marca_fk, propietario_ficha);
+        const { area_fk, tipo, nombre, serial, marca_fk, propietario_ficha,
+                ram, cant_ram, cpu, so, disco, tarj_video, pila, fuente, motherboard, tarj_red } = req.body;
+        const hardwareData = { ram, cant_ram, cpu, so, disco, tarj_video, pila, fuente, motherboard, tarj_red };
+        const changes = await equipoService.updateEquipo(fmo, area_fk, tipo, nombre, serial, marca_fk, propietario_ficha, hardwareData);
         if (changes === 0) {
             return res.status(404).json({ error: 'Equipo no encontrado o sin cambios' });
         }

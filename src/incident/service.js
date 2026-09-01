@@ -23,19 +23,19 @@ const incidentQuery = `
         rw.cpu_fmo,
         rw.tipo_falla AS workstation_tipo_falla,
         rw.respaldo,
-        rw.ram,
-        rw.cant_ram,
-        rw.cpu,
-        rw.so,
-        rw.disco,
-        rw.tarj_video,
-        rw.pila,
-        rw.fuente,
-        rw.motherboard,
-        rw.tarj_red,
         rw.observacion AS workstation_observacion,
         rw.usuario AS workstation_usuario,
         rw.password,
+        eq.ram,
+        eq.cant_ram,
+        eq.cpu,
+        eq.so,
+        eq.disco,
+        eq.tarj_video,
+        eq.pila,
+        eq.fuente,
+        eq.motherboard,
+        eq.tarj_red,
         rp.fmo AS periferico_fmo,
         rp.falla AS periferico_falla,
         ep.nombre AS periferico_nombre,
@@ -50,6 +50,7 @@ const incidentQuery = `
     LEFT JOIN Usuario e ON i.encargado = e.ficha
     LEFT JOIN Area_Departamento a ON u.id_area = a.id
     LEFT JOIN R_workstation rw ON i.id = rw.id
+    LEFT JOIN Equipo eq ON rw.cpu_fmo = eq.fmo
     LEFT JOIN R_periferico rp ON i.id = rp.id
     LEFT JOIN Equipo ep ON rp.fmo = ep.fmo
     LEFT JOIN Marca mp ON ep.marca_fk = mp.id

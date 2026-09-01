@@ -39,6 +39,16 @@ const initDatabase = async () => {
                 serial TEXT,
                 marca_fk INTEGER,
                 propietario_ficha INTEGER,
+                cant_ram INTEGER,
+                so TEXT,
+                ram INTEGER,
+                disco INTEGER,
+                cpu INTEGER,
+                tarj_video INTEGER,
+                pila INTEGER,
+                fuente INTEGER,
+                motherboard INTEGER,
+                tarj_red INTEGER,
                 FOREIGN KEY (area_fk) REFERENCES Area_Departamento(id),
                 FOREIGN KEY (marca_fk) REFERENCES Marca(id),
                 FOREIGN KEY (propietario_ficha) REFERENCES Usuario(ficha)
@@ -69,16 +79,6 @@ const initDatabase = async () => {
                 cpu_fmo INTEGER,
                 tipo_falla TEXT,
                 respaldo INTEGER,
-                ram INTEGER,
-                cant_ram INTEGER,
-                cpu INTEGER,
-                so TEXT,
-                disco INTEGER,
-                tarj_video INTEGER,
-                pila INTEGER,
-                fuente INTEGER,
-                motherboard INTEGER,
-                tarj_red INTEGER,
                 observacion TEXT,
                 usuario TEXT,
                 password TEXT,
@@ -110,6 +110,25 @@ const initDatabase = async () => {
         const usuarioInfo = await db.all('PRAGMA table_info(Usuario)');
         if (!usuarioInfo.some(c => c.name === 'password')) {
             await db.run('ALTER TABLE Usuario ADD COLUMN password TEXT');
+        }
+
+        // 3. Migraciones para mover atributos de hardware de R_workstation a Equipo
+        const hardwareColumns = [
+            { name: 'cant_ram', type: 'INTEGER' },
+            { name: 'so', type: 'TEXT' },
+            { name: 'ram', type: 'INTEGER' },
+            { name: 'disco', type: 'INTEGER' },
+            { name: 'cpu', type: 'INTEGER' },
+            { name: 'tarj_video', type: 'INTEGER' },
+            { name: 'pila', type: 'INTEGER' },
+            { name: 'fuente', type: 'INTEGER' },
+            { name: 'motherboard', type: 'INTEGER' },
+            { name: 'tarj_red', type: 'INTEGER' }
+        ];
+        for (const col of hardwareColumns) {
+            if (!equipoInfo.some(c => c.name === col.name)) {
+                await db.run(`ALTER TABLE Equipo ADD COLUMN ${col.name} ${col.type}`);
+            }
         }
 
         // 3. Verificar si hay al menos un usuario Admin

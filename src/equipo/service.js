@@ -1,12 +1,16 @@
 const { connectDB } = require('../../config/database');
 
-async function createEquipo(fmo, area_fk, tipo, nombre, serial, marca_fk, propietario_ficha = null) {
+async function createEquipo(fmo, area_fk, tipo, nombre, serial, marca_fk, propietario_ficha = null, hardwareData = {}) {
     const db = await connectDB();
-    const result = await db.run(
-        'INSERT INTO Equipo (fmo, area_fk, tipo, nombre, serial, marca_fk, propietario_ficha) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        [fmo, area_fk, tipo, nombre, serial, marca_fk, propietario_ficha]
+    const { cant_ram, so, ram, disco, cpu, tarj_video, pila, fuente, motherboard, tarj_red } = hardwareData;
+    await db.run(
+        `INSERT INTO Equipo (fmo, area_fk, tipo, nombre, serial, marca_fk, propietario_ficha, 
+         cant_ram, so, ram, disco, cpu, tarj_video, pila, fuente, motherboard, tarj_red) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [fmo, area_fk, tipo, nombre, serial, marca_fk, propietario_ficha, 
+         cant_ram, so, ram, disco, cpu, tarj_video, pila, fuente, motherboard, tarj_red]
     );
-    return { fmo, area_fk, tipo, nombre, serial, marca_fk, propietario_ficha };
+    return { fmo, area_fk, tipo, nombre, serial, marca_fk, propietario_ficha, ...hardwareData };
 }
 
 async function getEquipos(userFicha = null, isAdmin = false) {
@@ -42,11 +46,15 @@ async function getEquipoByFmo(fmo) {
     return equipo;
 }
 
-async function updateEquipo(fmo, area_fk, tipo, nombre, serial, marca_fk, propietario_ficha = null) {
+async function updateEquipo(fmo, area_fk, tipo, nombre, serial, marca_fk, propietario_ficha = null, hardwareData = {}) {
     const db = await connectDB();
+    const { cant_ram, so, ram, disco, cpu, tarj_video, pila, fuente, motherboard, tarj_red } = hardwareData;
     const result = await db.run(
-        'UPDATE Equipo SET area_fk = ?, tipo = ?, nombre = ?, serial = ?, marca_fk = ?, propietario_ficha = ? WHERE fmo = ?',
-        [area_fk, tipo, nombre, serial, marca_fk, propietario_ficha, fmo]
+        `UPDATE Equipo SET area_fk = ?, tipo = ?, nombre = ?, serial = ?, marca_fk = ?, propietario_ficha = ?,
+         cant_ram = ?, so = ?, ram = ?, disco = ?, cpu = ?, tarj_video = ?, pila = ?, fuente = ?, motherboard = ?, tarj_red = ?
+         WHERE fmo = ?`,
+        [area_fk, tipo, nombre, serial, marca_fk, propietario_ficha, 
+         cant_ram, so, ram, disco, cpu, tarj_video, pila, fuente, motherboard, tarj_red, fmo]
     );
     return result.changes;
 }

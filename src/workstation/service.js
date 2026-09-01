@@ -1,23 +1,13 @@
 const { connectDB } = require('../../config/database');
 
 async function createWorkstationRecord(db, id, data) {
-    const { 
-        cpu_fmo, tipo_falla, respaldo, ram, cant_ram, cpu, so, 
-        disco, tarj_video, pila, fuente, motherboard, tarj_red, 
-        observacion, usuario, password 
-    } = data;
+    const { cpu_fmo, tipo_falla, respaldo, observacion, usuario, password } = data;
 
     await db.run(
         `INSERT INTO R_workstation (
-            id, cpu_fmo, tipo_falla, respaldo, ram, cant_ram, cpu, so, 
-            disco, tarj_video, pila, fuente, motherboard, tarj_red, 
-            observacion, usuario, password
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-            id, cpu_fmo, tipo_falla, respaldo, ram, cant_ram, cpu, so, 
-            disco, tarj_video, pila, fuente, motherboard, tarj_red, 
-            observacion, usuario, password
-        ]
+            id, cpu_fmo, tipo_falla, respaldo, observacion, usuario, password
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [id, cpu_fmo, tipo_falla, respaldo, observacion, usuario, password]
     );
     return { id, ...data };
 }
