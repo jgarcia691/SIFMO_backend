@@ -14,6 +14,7 @@ const incidentRoutes = require('./src/incident/routes');
 const workstationRoutes = require('./src/workstation/routes');
 const marcaRoutes = require('./src/marca/routes');
 const equipoRoutes = require('./src/equipo/routes');
+const sylviaRoutes = require('./src/sylvia/routes');
 
 app.use(cors());
 app.use(express.json());
@@ -58,6 +59,7 @@ app.use('/api/incidentes', incidentRoutes);
 app.use('/api/workstations', workstationRoutes);
 app.use('/api/marcas', marcaRoutes);
 app.use('/api/equipos', equipoRoutes);
+app.use('/api/sylvia', sylviaRoutes);
 
 app.get('/', (req, res) => {
   res.send('API SISTEMA DE INCIDENCIAS funcionando');
