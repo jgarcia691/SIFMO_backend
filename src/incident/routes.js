@@ -11,6 +11,7 @@ router.get('/listar/', incidentController.getIncidents);
 router.get('/listar/analista/:ficha', incidentController.getIncidentsByAnalista);
 router.get('/listar/cliente/:clienteId', incidentController.getIncidentsByCliente);
 router.get('/detalle/:id', incidentController.getIncidentById);
+router.get('/fmo/:fmo', incidentController.getIncidentByFmo);
 router.put('/actualizar/:id', incidentController.updateIncident);
 router.delete('/eliminar/:id', incidentController.deleteIncident);
 

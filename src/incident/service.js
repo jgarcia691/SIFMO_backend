@@ -141,12 +141,40 @@ async function deleteIncident(id) {
     return result.changes;
 }
 
+async function getIncidentByFmo(fmo) {
+    const db = await connectDB();
+    const cleanFmo = Number(fmo);
+    
+    // Buscar incidente activo donde el estatus NO sea 'Entregado'
+    const activeIncident = await db.get(
+        `${incidentQuery} WHERE (rw.cpu_fmo = ? OR rp.fmo = ?) AND LOWER(i.status) != 'entregado' ORDER BY i.id DESC LIMIT 1`,
+        [cleanFmo, cleanFmo]
+    );
+    
+    if (activeIncident) {
+        return { incident: activeIncident, isActive: true };
+    }
+
+    // Buscar si el último incidente registrado ya fue entregado
+    const latestIncident = await db.get(
+        `${incidentQuery} WHERE (rw.cpu_fmo = ? OR rp.fmo = ?) ORDER BY i.id DESC LIMIT 1`,
+        [cleanFmo, cleanFmo]
+    );
+
+    if (latestIncident) {
+        return { incident: latestIncident, isActive: false, isDelivered: true };
+    }
+
+    return null;
+}
+
 module.exports = {
     createIncident,
     getIncidents,
     getIncidentsByCliente,
     getIncidentsByAnalista,
     getIncidentById,
+    getIncidentByFmo,
     updateIncident,
     deleteIncident
 };

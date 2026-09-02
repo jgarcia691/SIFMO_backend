@@ -66,6 +66,22 @@ async function getIncidentById(req, res) {
     }
 }
 
+async function getIncidentByFmo(req, res) {
+    try {
+        const { fmo } = req.params;
+        const result = await incidentService.getIncidentByFmo(fmo);
+        
+        if (!result) {
+            return res.status(404).json({ error: `No se encontró ningún reporte registrado para el FMO #${fmo}` });
+        }
+        
+        res.status(200).json(result);
+    } catch (error) {
+        console.error('Error al obtener incidente por FMO:', error);
+        res.status(500).json({ error: error.message || 'Error interno del servidor' });
+    }
+}
+
 async function updateIncident(req, res) {
     try {
         const { id } = req.params;
@@ -315,6 +331,7 @@ module.exports = {
     getIncidentsByCliente,
     getIncidentsByAnalista,
     getIncidentById,
+    getIncidentByFmo,
     updateIncident,
     deleteIncident
 };

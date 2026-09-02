@@ -1,185 +1,238 @@
-const { connectDB } = require('../../config/database');
-
 /**
- * Servicio de Inteligencia Artificial Sylvia con integración exclusiva a Gemini 3.5 Flash Lite
+ * Servicio de Inteligencia Artificial Sylvia (100% Conversacional con Lenguaje Natural en Google Gemini)
  */
-async function processSylviaChat(userMessage, conversationHistory = [], userData = null) {
-  const apiKey = process.env.GEMINI_API_KEY;
 
-  if (!apiKey || apiKey.trim() === '' || apiKey === 'tu_api_key_aqui') {
+async function processSylviaChat(userMessage, conversationHistory = [], userData = null, draftData = null) {
+  const apiKey = process.env.GEMINI_API_KEY;
+  const configuredModel = (process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite').trim();
+
+  if (!apiKey || apiKey.trim() === '' || apiKey.includes('tu_api_key')) {
     return {
-      success: true,
-      fallback: true,
-      reply: null,
-      message: 'GEMINI_API_KEY no configurada. Usando motor guionisado.'
+      success: false,
+      reply: '⚠️ Error de configuración: La clave de API de Gemini (GEMINI_API_KEY) no está configurada en el servidor.',
+      intent: 'ERROR',
+      draftData: draftData || null,
+      createIncident: false,
+      lookupTicketId: null,
+      lookupFmo: null
     };
   }
 
   try {
-    const db = await connectDB();
-    
-    // Obtener contexto de equipos del usuario
-    let userEquipos = [];
-    let userIncidents = [];
-    if (userData?.ficha) {
-      userEquipos = await db.all('SELECT fmo, tipo, nombre, serial, so FROM Equipo WHERE propietario_ficha = ?', [userData.ficha]);
-      userIncidents = await db.all('SELECT id, tipo, status, fecha FROM Incidente WHERE cliente = ? ORDER BY id DESC LIMIT 5', [userData.ficha]);
-    }
-
-    // Contexto del sistema para Gemini
     const systemInstruction = `
-Eres Sylvia, la asistenta virtual inteligente de Soporte Técnico SIFMO (Sistema de Gestión de Incidencias de Ferrominera Orinoco).
-Tu objetivo es ayudar a los trabajadores de la empresa a solucionar dudas de soporte IT, guiar el reporte de incidentes y consultar el estatus de sus solicitudes.
+Eres Sylvia, la asistente de Inteligencia Artificial de Soporte Técnico SIFMO (CVG Ferrominera Orinoco).
+Tu interacción con el usuario es 100% EN LENGUAJE NATURAL. No uses ni menciones botones.
+Responde de forma DIRECTA, CONCISA, AMABLE y SIN TEXTO INNECESARIO (máximo 1 o 2 líneas por respuesta).
 
-CONTEXTO DEL USUARIO ACTUAL:
-- Nombre: ${userData?.nombre || 'Usuario SIFMO'}
+CONTEXTO ACTUAL DEL USUARIO:
+- Nombre: ${userData?.nombre || 'Trabajador SIFMO'}
 - Ficha: ${userData?.ficha || 'N/A'}
-- Equipos registrados a su nombre: ${JSON.stringify(userEquipos)}
-- Tickets / Incidentes recientes: ${JSON.stringify(userIncidents)}
+- Borrador actual en memoria (draftData): ${JSON.stringify(draftData || {})}
 
-INSTRUCCIONES DE RESPUESTA:
-Debes responder SIEMPRE únicamente en formato JSON válido con la siguiente estructura:
+1. REPORTE Y CREACIÓN DE INCIDENTES:
+   - Datos obligatorios:
+     a) FMO: Número identificador del equipo (ej: 1045, 8820). No valides contra la base de datos, pídelo al usuario.
+     b) Tipo de equipo: "Estación de Trabajo" (PC, CPU, Laptop) o "Periférico" (monitor, mouse, teclado, impresora, etc.).
+     c) Falla: Breve descripción del problema técnico.
+   - Pide en lenguaje natural los datos que falten.
+   - Si el usuario te envía varios o todos los datos en un solo mensaje (ej: "mi monitor no prende FMO 1234"), extrae todos los datos de inmediato en el JSON.
+   - Cuando tengas los 3 datos requeridos (FMO, tipo de equipo y falla):
+     * Asigna "readyToConfirm": true en "draftData".
+     * En "reply", di brevemente: "He preparado el reporte con estos datos. ¿Confirmas la creación del ticket o deseas cambiar algo?"
+   - Si el borrador ya tiene "readyToConfirm": true y el usuario responde afirmativamente (ej: "sí", "confirmo", "de acuerdo", "créalo", "procede", "está bien", "dale", "correcto"):
+     * Coloca "intent": "CREATE_INCIDENT", "createIncident": true y en "reply": "Perfecto, procedo a registrar tu incidente en el sistema."
+   - Si el usuario pide cambiar algún dato (ej: "cambia el FMO a 9900", "es un periférico", "la falla es que la pantalla parpadea"):
+     * Modifica el campo en "draftData", mantén "readyToConfirm": true y responde: "Datos actualizados. ¿Deseas confirmar la creación del ticket?"
+
+2. CONSULTA DE ESTATUS DE INCIDENTES:
+   - Si el usuario quiere consultar el estado de un ticket por número de ID (ej: "cómo va el ticket 105", "#105", "estatus del 105", "ver ticket 40"):
+     * Coloca "intent": "CHECK_TICKET_STATUS", "lookupTicketId": "105", "lookupFmo": null.
+   - Si el usuario quiere consultar el estado de un equipo por su FMO (ej: "estado del FMO 1234", "cómo va el fmo 5020", "estatus del equipo FMO 8820", "consultar FMO 9901"):
+     * Coloca "intent": "CHECK_TICKET_STATUS", "lookupTicketId": null, "lookupFmo": "1234".
+   - Si el usuario pide consultar pero no dio ID ni FMO:
+     * Pídele en lenguaje natural que te indique el número de Ticket (#ID) o el FMO del equipo.
+
+3. REGLAS DE ESTILO:
+   - Sé directa, concisa y profesional. Sin introducciones largas ni rodeos.
+
+FORMATO OBLIGATORIO DE SALIDA (ÚNICAMENTE UN OBJETO JSON VÁLIDO):
 {
-  "reply": "Tu respuesta conversacional amable, profesional y concisa en español.",
-  "intent": "GREETING" | "GENERAL_HELP" | "CREATE_TICKET_DRAFT" | "CHECK_TICKET_STATUS",
+  "reply": "Texto conciso en lenguaje natural.",
+  "intent": "GREETING" | "COLLECTING_INFO" | "READY_TO_CONFIRM" | "CREATE_INCIDENT" | "CHECK_TICKET_STATUS" | "GENERAL_HELP",
   "draftData": {
-    "tipo": "reparacion de estacion de trabajo" | "reparacion de periferico" | "solicitud",
-    "cpu_fmo": "número FMO si aplica",
-    "fmo": "número FMO de periférico si aplica",
-    "tipo_falla": "descripción breve de la falla si aplica",
-    "respaldo": true | false,
-    "observacion": "detalles adicionales",
-    "tipo_solicitud": "tipo si es solicitud",
-    "descripcion": "descripción de la solicitud"
+    "fmo": "string o null",
+    "tipo_equipo": "estacion de trabajo" | "periferico" | null,
+    "tipo": "reparacion de estacion de trabajo" | "reparacion de periferico" | null,
+    "falla": "string o null",
+    "observacion": "string o null",
+    "readyToConfirm": true | false
   },
-  "lookupTicketId": "ID del ticket si el usuario pregunta por el estado de un número específico o null",
-  "suggestedButtons": [
-    { "label": "Texto del botón", "action": "NombreAccion", "value": "ValorOpcional" }
-  ]
+  "createIncident": true | false,
+  "lookupTicketId": "string o null",
+  "lookupFmo": "string o null"
 }
-
-REGLAS:
-1. Si el usuario describe un problema técnico que requiere intervención (ej: "mi pantalla no prende", "la impresora no funciona"), ofrece la solución básica y pon intent = "CREATE_TICKET_DRAFT" con draftData pre-llenado para sugerirle abrir un reporte.
-2. Si pregunta por el estado de un ticket (ej: "¿Cómo va mi ticket #102?"), pon intent = "CHECK_TICKET_STATUS" y extrae el ID en "lookupTicketId".
-3. Responde únicamente con el objeto JSON, sin texto extra fuera de las llaves {}.
 `;
 
-    // Formatear historial reciente
-    const contents = [
-      {
-        role: 'user',
-        parts: [{ text: systemInstruction }]
-      },
-      ...conversationHistory.slice(-6).map(m => ({
-        role: m.sender === 'user' ? 'user' : 'model',
-        parts: [{ text: m.text }]
-      })),
-      {
-        role: 'user',
-        parts: [{ text: userMessage }]
-      }
-    ];
+    // Formatear historial con alternancia estricta de turnos Gemini (user <-> model)
+    const contents = formatGeminiContents(conversationHistory, userMessage);
 
-    // Modelo primario preferido: gemini-3.6-flash (con respaldos ante 503 por alta demanda temporal)
-    const primaryModel = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
-    const modelsToTry = [primaryModel, 'gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-3.7-flash', 'gemini-2.5-flash'].filter((v, i, a) => a.indexOf(v) === i);
+    const modelsToTry = [
+      configuredModel,
+      'gemini-3.5-flash-lite',
+      'gemini-3.6-flash',
+      'gemini-3.1-flash-lite'
+    ].filter((v, i, a) => Boolean(v) && a.indexOf(v) === i);
 
-    let response = null;
+    let rawText = null;
     let lastError = null;
 
-    for (const modelName of modelsToTry) {
-      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
-      console.log(`[Gemini API] Probando modelo: ${modelName}`);
+    for (const model of modelsToTry) {
+      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      console.log(`[Gemini AI] Invocando modelo: ${model}`);
 
       try {
         const res = await fetch(apiUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            systemInstruction: {
+              parts: [{ text: systemInstruction }]
+            },
             contents,
             generationConfig: {
               responseMimeType: 'application/json',
-              temperature: 0.3
+              temperature: 0.1
             }
           })
         });
 
         if (res.ok) {
-          console.log(`[Gemini API] Solicitud exitosa con modelo: ${modelName}`);
-          response = res;
-          break;
+          const data = await res.json();
+          rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (rawText) break;
         } else {
           const errText = await res.text();
-          console.warn(`[Gemini API] Modelo ${modelName} retornó estatus ${res.status}: ${errText.slice(0, 180)}`);
-          lastError = `Estatus ${res.status} en ${modelName}`;
+          console.warn(`[Gemini AI] Modelo ${model} respondió ${res.status}: ${errText.slice(0, 180)}`);
+          lastError = `Estatus ${res.status}: ${errText.slice(0, 100)}`;
         }
       } catch (err) {
-        console.warn(`[Gemini API] Error al conectar con ${modelName}:`, err.message);
+        console.warn(`[Gemini AI] Error con modelo ${model}:`, err.message);
         lastError = err.message;
       }
     }
 
-    if (!response) {
-      console.warn(`[Gemini API] Todos los modelos de Gemini fallaron. Último error: ${lastError}. Usando modo guionisado.`);
-      return { success: true, fallback: true, error: lastError };
-    }
-
-    const data = await response.json();
-    const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-
     if (!rawText) {
-      return { success: true, fallback: true };
+      return {
+        success: false,
+        reply: `❌ No se pudo conectar con la IA de Gemini (${lastError || 'Servicio no disponible'}). Por favor intenta de nuevo en unos momentos.`,
+        intent: 'ERROR',
+        draftData: draftData || null,
+        createIncident: false,
+        lookupTicketId: null,
+        lookupFmo: null
+      };
     }
 
-    // Parseo robusto de JSON
+    let cleanJsonStr = rawText.trim().replace(/^```json/i, '').replace(/^```/i, '').replace(/```$/i, '').trim();
     let parsed = null;
-    let cleanJsonStr = rawText.trim();
-    cleanJsonStr = cleanJsonStr.replace(/^```json/i, '').replace(/^```/i, '').replace(/```$/i, '').trim();
 
     try {
       parsed = JSON.parse(cleanJsonStr);
     } catch (e) {
-      // Intentar extraer bloque JSON { ... } usando regex si vino texto envolvente
       const jsonMatch = cleanJsonStr.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         try {
           parsed = JSON.parse(jsonMatch[0]);
         } catch (matchErr) {
-          console.warn('[Gemini API] No se pudo parsear el bloque JSON con regex:', matchErr.message);
+          console.warn('[Gemini AI] Error parseando bloque JSON:', matchErr.message);
         }
       }
     }
 
     if (!parsed) {
-      // Si la respuesta fue texto plano en lugar de JSON, mostrar la respuesta del modelo sin fallar
-      console.log('[Gemini API] Modelo retornó texto plano. Ajustando respuesta suave.');
       return {
         success: true,
-        fallback: false,
         reply: rawText.replace(/```/g, '').trim(),
         intent: 'GENERAL_HELP',
-        suggestedButtons: [
-          { label: '📝 Crear Reporte', action: 'GOTO_REPORT_SELECT' },
-          { label: '🔍 Consultar Ticket', action: 'GOTO_STATUS_MENU' },
-          { label: '🏠 Menú Principal', action: 'GOTO_MAIN_MENU' }
-        ]
+        draftData: draftData || null,
+        createIncident: false,
+        lookupTicketId: null,
+        lookupFmo: null
       };
+    }
+
+    const consolidatedDraft = {
+      ...(draftData || {}),
+      ...(parsed.draftData || {})
+    };
+
+    if (consolidatedDraft.fmo && consolidatedDraft.tipo_equipo && consolidatedDraft.falla) {
+      consolidatedDraft.readyToConfirm = true;
+      consolidatedDraft.tipo = consolidatedDraft.tipo_equipo === 'estacion de trabajo'
+        ? 'reparacion de estacion de trabajo'
+        : 'reparacion de periferico';
     }
 
     return {
       success: true,
-      fallback: false,
-      reply: parsed.reply || 'Hola, ¿en qué te puedo colaborar?',
-      intent: parsed.intent || 'GENERAL_HELP',
-      draftData: parsed.draftData || null,
+      reply: parsed.reply || 'Información procesada por Sylvia AI.',
+      intent: parsed.intent || (parsed.createIncident ? 'CREATE_INCIDENT' : (consolidatedDraft.readyToConfirm ? 'READY_TO_CONFIRM' : 'COLLECTING_INFO')),
+      draftData: consolidatedDraft,
+      createIncident: Boolean(parsed.createIncident || parsed.intent === 'CREATE_INCIDENT'),
       lookupTicketId: parsed.lookupTicketId || null,
-      suggestedButtons: parsed.suggestedButtons || []
+      lookupFmo: parsed.lookupFmo || null
     };
 
   } catch (err) {
-    console.error('Error invocando Gemini LLM para Sylvia:', err);
-    return { success: true, fallback: true, error: err.message };
+    console.error('Error invocando Gemini API para Sylvia:', err);
+    return {
+      success: false,
+      reply: '❌ Ocurrió un error al procesar tu mensaje con la IA. Por favor intenta de nuevo.',
+      intent: 'ERROR',
+      draftData: draftData || null,
+      createIncident: false,
+      lookupTicketId: null,
+      lookupFmo: null
+    };
   }
+}
+
+/**
+ * Formatear historial con turnos estrictos user -> model -> user para Gemini API
+ */
+function formatGeminiContents(history = [], currentMessage = '') {
+  const turns = [];
+
+  for (const msg of history) {
+    if (!msg || !msg.text) continue;
+    const role = (msg.sender === 'user' || msg.role === 'user') ? 'user' : 'model';
+    const text = typeof msg.text === 'string' ? msg.text.trim() : JSON.stringify(msg.text);
+    if (!text) continue;
+
+    if (turns.length > 0 && turns[turns.length - 1].role === role) {
+      turns[turns.length - 1].parts[0].text += `\n${text}`;
+    } else {
+      turns.push({ role, parts: [{ text }] });
+    }
+  }
+
+  // Asegurar que el último turno sea el mensaje actual del usuario
+  if (turns.length > 0 && turns[turns.length - 1].role === 'user') {
+    turns[turns.length - 1].parts[0].text += `\n${currentMessage.trim()}`;
+  } else {
+    turns.push({ role: 'user', parts: [{ text: currentMessage.trim() }] });
+  }
+
+  // Gemini API exige que el primer turno sea 'user'
+  while (turns.length > 0 && turns[0].role !== 'user') {
+    turns.shift();
+  }
+
+  if (turns.length === 0) {
+    turns.push({ role: 'user', parts: [{ text: currentMessage.trim() }] });
+  }
+
+  return turns;
 }
 
 module.exports = { processSylviaChat };
